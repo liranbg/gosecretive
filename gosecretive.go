@@ -124,6 +124,9 @@ func travel(fieldPath string,
 
 	// value is a slice. travel each element
 	case reflect.Slice:
+		if original.IsNil() {
+			return
+		}
 		travelValue.Set(reflect.MakeSlice(original.Type(), original.Len(), original.Cap()))
 		for i := 0; i < original.Len(); i += 1 {
 			travel(fmt.Sprintf("%s[%d]", fieldPath, i), travelValue.Index(i), original.Index(i), secrets, callback)
@@ -131,6 +134,9 @@ func travel(fieldPath string,
 
 	// value is a map. travel each element
 	case reflect.Map:
+		if original.IsNil() {
+			return
+		}
 		travelValue.Set(reflect.MakeMap(original.Type()))
 		for _, key := range original.MapKeys() {
 			v := original.MapIndex(key)

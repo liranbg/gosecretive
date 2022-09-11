@@ -29,7 +29,15 @@ type C struct {
 }
 
 type D struct {
-	List []string
+	List                      []string
+	InitializedListEmpty      []string
+	UnInitializedList         []interface{}
+	InitializedMapEmpty       map[string]string
+	UnInitializedMap          map[string]string
+	InitializedStructEmpty    A
+	InitializedStructPtrEmpty *A
+	UnInitializedStructPtr    *A
+	UnInitializedStruct       A
 }
 
 var TestCases = []struct {
@@ -126,10 +134,18 @@ var TestCases = []struct {
 	{
 		name: "Struct containing a list",
 		Raw: &D{
-			List: []string{"a", "b", "c"},
+			List:                      []string{"a", "b", "c"},
+			InitializedListEmpty:      []string{},
+			InitializedMapEmpty:       map[string]string{},
+			InitializedStructEmpty:    A{},
+			InitializedStructPtrEmpty: &A{},
 		},
 		Scrubbed: &D{
-			List: []string{"scrubbed/List[0]", "b", "scrubbed/List[2]"},
+			List:                      []string{"scrubbed/List[0]", "b", "scrubbed/List[2]"},
+			InitializedListEmpty:      []string{},
+			InitializedMapEmpty:       map[string]string{},
+			InitializedStructEmpty:    A{},
+			InitializedStructPtrEmpty: &A{},
 		},
 		Secretes: map[string]string{
 			"scrubbed/List[0]": "a",
@@ -264,6 +280,21 @@ func TestScrub(t *testing.T) {
 
 				// after first iteration, we want to make sure that the secrets generated is empty (aka nothing was scrubbed)
 				tc.secrets = map[string]string{}
+			}
+		})
+	}
+}
+
+func TestRoundTrip(t *testing.T) {
+	for _, tc := range TestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := tc.Raw
+			for i := 0; i < 3; i++ {
+				restoredObject := Restore(Scrub(raw, tc.ScrubFuncHandler))
+				if !reflect.DeepEqual(restoredObject, tc.Raw) {
+					t.Errorf("RoundTrip() restoredObject = %v, expectedRestoredObject %v", restoredObject, tc.Raw)
+				}
+				raw = restoredObject
 			}
 		})
 	}
